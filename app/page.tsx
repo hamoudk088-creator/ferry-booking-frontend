@@ -5,15 +5,17 @@ import HeaderView from './HeaderView';
 import AnimatedMap from './AnimatedMap';
 import SearchStep from './SearchStep';
 import ResultsView from './ResultsView';
-import LandingContent from './LandingContent'; // <-- Hier importiert!
+import LandingContent from './LandingContent';
 import AiChatbot from './AiChatbot';
 import { LOCALES } from './locales';
+import { runAutomatedPipelineTest } from './automatedTests'; // <-- Test-Suite importiert!
 
 export default function Home() {
   const [step, setStep] = useState(1);
   const [currentLang, setCurrentLang] = useState('DE');
+  const [testLogs, setTestLogs] = useState<string[]>([]); // <-- Logs-Zustand definiert!
   
-  // Zentrale Suchmasken-Zustände
+  // Zentrale Suchmasken-Zustände (Start- und Zielhäfen)
   const [origin, setOrigin] = useState('Marseille 🇫🇷');
   const [destination, setDestination] = useState('Algiers (Algier) 🇩🇿');
   const [depDate, setDepDate] = useState('2026-09-15');
@@ -26,12 +28,13 @@ export default function Home() {
 
   const t = LOCALES[currentLang] || LOCALES.DE;
 
+  // Mathematisch exakte Netto-Preiskalkulation vor Steuern für das Suchergebnis
   const getPrice = () => {
-    let base = accommodation === 'Cabin' ? 260 : 180;
+    let base = accommodation === 'Cabin' ? 120 : 90;
     if (vehicle === 'Van') base += 90;
     if (vehicle === 'Bus') base += 180;
-    if (vehicle === 'None') base -= 60;
-    return (base * Number(adults)) + (Number(children) * 40) + 15;
+    if (vehicle === 'None') base -= 40;
+    return base;
   };
 
   const stepsConfig = [
@@ -43,7 +46,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#f4f8f9] text-slate-900 antialiased font-sans relative">
       
-      {/* HEADER & TÜRKIS-GELBE DEKO-KARTE */}
+      {/* HEADER & ANIMIERTE SEE-KARTE */}
       <div className="print-hidden">
         <HeaderView currentLang={currentLang} setCurrentLang={setCurrentLang} />
         <AnimatedMap currentLang={currentLang} />
@@ -76,7 +79,7 @@ export default function Home() {
       </div>
 
       {/* HAUPTCONTENT-CONTAINER */}
-      <main className="max-w-5xl mx-auto px-6 pb-24 relative z-20 mt-2">
+      <main className="max-w-5xl mx-auto px-6 pb-12 relative z-20 mt-2">
         {step === 1 && (
           <>
             <SearchStep 
@@ -104,6 +107,35 @@ export default function Home() {
           />
         )}
       </main>
+
+      {/* 🧪 AUTOMATISIERTE ENTERPRISE TEST-SUITE IM FOOTER BEREICH */}
+      <div className="print-hidden max-w-5xl mx-auto px-6 pb-12 text-left font-sans text-xs">
+        <div className="bg-slate-900 text-slate-100 rounded-3xl p-6 border border-slate-800 space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+            <span className="font-mono text-[10px] tracking-widest text-cyan-400 font-black">🧪 NISOU PIPELINE AUTOMATED TEST CENTER</span>
+            <button 
+              type="button" 
+              onClick={() => {
+                setTestLogs([]);
+                runAutomatedPipelineTest(setTestLogs);
+              }}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-black px-4 py-2 rounded-xl uppercase tracking-wider text-[10px] transition-all transform active:scale-95"
+            >
+              Test-Modul ausführen
+            </button>
+          </div>
+          
+          {testLogs.length > 0 ? (
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 max-h-[180px] overflow-y-auto font-mono text-[11px] space-y-1 text-emerald-400">
+              {testLogs.map((log, i) => (
+                <p key={i} className={log.includes('❌') ? 'text-red-400' : log.includes('✅') ? 'text-cyan-400' : 'text-emerald-400'}>{log}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-slate-500 font-medium font-mono text-[10px]">// Bereit für automatisierten Integritätstest. Keine Protokolle vorhanden.</p>
+          )}
+        </div>
+      </div>
 
       <div className="print-hidden">
         <AiChatbot currentLang={currentLang} />
