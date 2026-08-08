@@ -2,46 +2,49 @@
 
 import React, { useState } from 'react';
 import PetCargoForm from './PetCargoForm';
+import CabinGridSelector from './CabinGridSelector'; // <-- Hier importiert!
 
 export default function BookingFormSteps({ subStage, setSubStage, passengerDetails, updatePassenger, mainEmail, setMainEmail, mainPhone, setMainPhone, plateNumber, setPlateNumber, vehicle, selectedCabin, setSelectedCabin, selectedOffer, selectedMeal, setSelectedMeal, selectedPet, setSelectedPet, currentLang }: any) {
   const [validationError, setValidationError] = useState<string | null>(null);
+  
+  // Neuer interaktiver Sitzplatz-Zustand
+  const [chosenSeat, setChosenSeat] = useState<any>(null);
 
-  // Profitaugliche Echtzeit-Eingabeprüfung (Form Validation)
   const validateFormSteps = (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
 
-    // 1. E-Mail Formatprüfung über RegEx
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(mainEmail)) {
       setValidationError("❌ Ungültiges E-Mail-Format für den Ticketversand.");
       return;
     }
 
-    // 2. Passnummer-Prüfung (Mindestens 6 Zeichen, alphanumerisch)
     for (let p of passengerDetails) {
       if (p.passport.trim().length < 6) {
         setValidationError(`❌ Die Reisepassnummer für ${p.firstName || 'Passagier'} ist zu kurz (mind. 6 Zeichen).`);
         return;
       }
     }
-
-    // Wenn alles okay ist, wechsle zum nächsten Schritt
     setSubStage('step6_extras');
+  };
+
+  const handleSeatSelection = (seat: any) => {
+    setChosenSeat(seat);
+    // Aktualisiert die globalen Berechnungen
+    setSelectedCabin(true); 
+    if (selectedOffer) {
+      selectedOffer.cabinPrice = seat.price; // Übergibt den dynamischen Matrix-Preis
+    }
   };
 
   return (
     <div className="w-full">
-      {/* SCHRITT 5: PERSONENDATEN MIT SICHERHEITSVALIDIERUNG */}
+      {/* SCHRITT 5: PERSONENDATEN */}
       {subStage === 'step5_data' && (
         <form onSubmit={validateFormSteps} className="bg-white rounded-3xl p-6 border shadow-xl space-y-6 max-w-xl mx-auto">
           <h3 className="text-sm font-black text-[#0b2545] border-b pb-2 uppercase tracking-wider">📋 Schritt 5: Personendaten</h3>
-          
-          {validationError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold animate-pulse">
-              {validationError}
-            </div>
-          )}
+          {validationError && <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold">{validationError}</div>}
 
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
             {passengerDetails.map((p: any, idx: number) => (
@@ -74,19 +77,20 @@ export default function BookingFormSteps({ subStage, setSubStage, passengerDetai
         </form>
       )}
 
-      {/* SCHRITT 6: ZUSATZLEISTUNGEN */}
+      {/* SCHRITT 6: ZUSATZLEISTUNGEN MIT VISUELLEM DECKPLAN */}
       {subStage === 'step6_extras' && (
-        <div className="bg-white rounded-3xl p-6 border shadow-xl space-y-4 max-w-md mx-auto">
-          <h3 className="text-sm font-black text-[#0b2545] border-b pb-2 uppercase tracking-wider">⚓ Schritt 6: Zusatzleistungen</h3>
-          <div className="space-y-2.5">
-            <button type="button" onClick={() => setSelectedCabin(!selectedCabin)} className={`w-full p-3.5 rounded-xl border-2 flex justify-between items-center font-bold text-xs transition-all ${selectedCabin ? 'bg-blue-50 border-blue-600 text-blue-900' : 'bg-slate-50 border-slate-200'}`}>
-              <span>🛌 Private Schlafkabine</span><span className="font-mono text-xs font-black">+{selectedOffer?.cabinPrice || 60} €</span>
+        <div className="bg-white rounded-3xl p-6 border shadow-xl space-y-5 max-w-md mx-auto">
+          <h3 className="text-sm font-black text-[#0b2545] border-b pb-2 uppercase tracking-wider">⚓ Schritt 6: Kabinen &amp; Zusatzleistungen</h3>
+          
+          {/* INTERAKTIVE INTERACTIVE MATRIX HIER INTEGRIERT */}
+          <CabinGridSelector selectedSeat={chosenSeat} onSelectSeat={handleSeatSelection} />
+
+          <div className="space-y-2">
+            <button type="button" onClick={() => setSelectedMeal(!selectedMeal)} className={`w-full p-3 rounded-xl border flex justify-between items-center font-bold text-xs transition-all ${selectedMeal ? 'bg-blue-50 border-blue-600 text-blue-900' : 'bg-slate-50 border-slate-200'}`}>
+              <span>🍽️ Vollpension (Mahlzeiten inkl.)</span><span className="font-mono text-xs font-black">+30 €</span>
             </button>
-            <button type="button" onClick={() => setSelectedMeal(!selectedMeal)} className={`w-full p-3.5 rounded-xl border-2 flex justify-between items-center font-bold text-xs transition-all ${selectedMeal ? 'bg-blue-50 border-blue-600 text-blue-900' : 'bg-slate-50 border-slate-200'}`}>
-              <span>🍽️ Vollpension (Mahlzeiten)</span><span className="font-mono text-xs font-black">+30 € / Pers.</span>
-            </button>
-            <button type="button" onClick={() => setSelectedPet(!selectedPet)} className={`w-full p-3.5 rounded-xl border-2 flex justify-between items-center font-bold text-xs transition-all ${selectedPet ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 border-slate-200'}`}>
-              <span>🐾 Haustier-Mitnahme</span><span className="font-mono text-xs font-black">+40 €</span>
+            <button type="button" onClick={() => setSelectedPet(!selectedPet)} className={`w-full p-3 rounded-xl border flex justify-between items-center font-bold text-xs transition-all ${selectedPet ? 'bg-blue-50 border-blue-600 text-blue-900' : 'bg-slate-50 border-slate-200'}`}>
+              <span>🐾 Haustier-Mitnahme anmelden</span><span className="font-mono text-xs font-black">+40 €</span>
             </button>
             <PetCargoForm selectedPet={selectedPet} currentLang={currentLang} />
           </div>
