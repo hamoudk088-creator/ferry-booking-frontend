@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ShieldCheck, Calendar, ArrowRight, Ship, Users, CheckCircle2 } from 'lucide-react';
 import HeaderView from './HeaderView';
 import AnimatedMap from './AnimatedMap';
 import SearchStep from './SearchStep';
@@ -14,7 +13,7 @@ export default function Home() {
   const [step, setStep] = useState(1);
   const [currentLang, setCurrentLang] = useState('DE');
   
-  // Suchmasken-Zustände
+  // Suchmasken-Zustände (Start- und Zielhäfen)
   const [origin, setOrigin] = useState('Marseille 🇫🇷');
   const [destination, setDestination] = useState('Algiers (Algier) 🇩🇿');
   const [depDate, setDepDate] = useState('2026-09-15');
@@ -27,16 +26,15 @@ export default function Home() {
 
   const t = LOCALES[currentLang] || LOCALES.DE;
 
-  // Mathematische Live-Preisberechnung je nach Auto, Kabine und Personenanzahl
+  // Mathematische Preisberechnung für das Ticket
   const getPrice = () => {
-    let base = accommodation === 'Luxury' ? 450 : accommodation === 'Family' ? 350 : accommodation === 'Standard' ? 260 : 180;
+    let base = accommodation === 'Cabin' ? 260 : 180;
     if (vehicle === 'Van') base += 90;
     if (vehicle === 'Bus') base += 180;
     if (vehicle === 'None') base -= 60;
     return (base * Number(adults)) + (Number(children) * 40) + 15;
   };
 
-  // Die vordefinierten Schritte für unsere neue, glühende Fortschrittsleiste
   const stepsConfig = [
     { number: 1, label: currentLang === 'AR' ? 'بحث' : currentLang === 'FR' ? 'Recherche' : '1. Suchen' },
     { number: 2, label: currentLang === 'AR' ? 'العبارات المتاحة' : currentLang === 'FR' ? 'Traversées' : '2. Tarife vergleichen' },
@@ -46,56 +44,43 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#f4f8f9] text-slate-900 antialiased font-sans relative">
       
-      {/* 1. DER TRILINGUALE NAVIGATION-HEADER */}
-      <HeaderView currentLang={currentLang} setCurrentLang={setCurrentLang} />
-
-      {/* 2. DIE GRENZENLOSE ANIMIERTE SEEKARTE */}
-      <AnimatedMap currentLang={currentLang} />
-
-      {/* 3. PROFI-FORTSCHRITTSLEISTE (STEP PROGRESS BAR) */}
-      <div className="w-full bg-[#0b2545] border-b border-sky-900/40 py-4 px-6">
-        <div className="max-w-3xl mx-auto flex items-center justify-between relative">
-          
-          {/* Hintergrund-Verbindungslinie */}
-          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-700/60 z-0"></div>
-          
-          {stepsConfig.map((s) => {
-            const isActive = step === s.number;
-            const isCompleted = step > s.number;
-            return (
+      {/* HEADER & ANIMIERTE SEE-KARTE */}
+      <div className="print-hidden">
+        <HeaderView currentLang={currentLang} setCurrentLang={setCurrentLang} />
+        <AnimatedMap currentLang={currentLang} />
+        
+        {/* NAVIGATIONS-FORTSCHRITTSBAR */}
+        <div className="w-full bg-[#0b2545] border-b border-sky-900/40 py-4 px-6">
+          <div className="max-w-3xl mx-auto flex items-center justify-between relative">
+            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-700/60 z-0"></div>
+            {stepsConfig.map((s) => (
               <div key={s.number} className="flex flex-col items-center relative z-10 flex-1">
                 <div className={`w-8 h-8 rounded-full font-black text-xs flex items-center justify-center transition-all duration-300 ${
-                  isCompleted 
-                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
-                    : isActive 
-                      ? 'bg-amber-400 text-slate-950 scale-110 ring-4 ring-amber-400/20' 
-                      : 'bg-slate-800 text-slate-400 border border-slate-700'
+                  step === s.number ? 'bg-amber-400 text-slate-950 scale-110' : step > s.number ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400'
                 }`}>
-                  {isCompleted ? "✓" : s.number}
+                  {step > s.number ? "✓" : s.number}
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-wider mt-1.5 transition-colors duration-300 ${
-                  isActive ? 'text-amber-400' : isCompleted ? 'text-emerald-400' : 'text-slate-400'
-                }`}>
+                <span className={`text-[10px] font-black uppercase tracking-wider mt-1.5 ${step === s.number ? 'text-amber-400' : 'text-slate-400'}`}>
                   {s.label}
                 </span>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
+
+        {step === 1 && (
+          <section className="relative text-center py-10 px-4">
+            <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">{t.heroTitle}</h1>
+            <p className="text-slate-500 font-medium text-xs md:text-sm mt-2 max-w-xl mx-auto">{t.heroDesc}</p>
+          </section>
+        )}
       </div>
 
-      {/* HERO-TTEXTBEREICH */}
-      <section className="relative text-center py-10 px-4">
-        <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">{t.heroTitle}</h1>
-        <p className="text-slate-500 font-medium text-xs md:text-sm mt-2 max-w-xl mx-auto">{t.heroDesc}</p>
-      </section>
-
-      {/* 4. HAUPT-LOGIK-CONTAINER */}
-      <main className="max-w-5xl mx-auto px-6 pb-24 relative z-20">
-        
-        {/* SCHRITT 1: DIE HELLGELBE BUCHUNGSMASCHINE */}
+      {/* HAUPT-LOGIK BEREICH */}
+      <main className="max-w-5xl mx-auto px-6 pb-24 relative z-20 mt-6">
         {step === 1 && (
           <>
+            {/* HIER WERDEN DIE VARIABLEN ORIGIN UND DESTINATION PROFIHAFT AN DIE SUCHMASCHINE ÜBERGEBEN */}
             <SearchStep 
               vehicle={vehicle} setVehicle={setVehicle} accommodation={accommodation} setAccommodation={setAccommodation}
               adults={adults} setAdults={setAdults} children={children} setChildren={setChildren}
@@ -104,11 +89,13 @@ export default function Home() {
               destination={destination} setDestination={setDestination} onSearch={() => setStep(2)}
               currentLang={currentLang}
             />
-            <LandingContent currentLang={currentLang} />
+            <div className="print-hidden">
+              <LandingContent currentLang={currentLang} />
+            </div>
           </>
         )}
 
-        {/* SCHRITT 2: DIE FUNKTIONIERENDE TICKETLISTE & BUCHUNGSSTUFEN */}
+        {/* SCHRITT 2: HIER FLIESSEN DIE PARAMETER DIREKT IN DIE ERGEBNIS-LISTE DER ECHTEN FÄHREN */}
         {step === 2 && (
           <ResultsView 
             origin={origin} 
@@ -123,8 +110,9 @@ export default function Home() {
         )}
       </main>
 
-      {/* 5. GLOBALER KI CHATBOT ASSISTENT */}
-      <AiChatbot currentLang={currentLang} />
+      <div className="print-hidden">
+        <AiChatbot currentLang={currentLang} />
+      </div>
 
     </div>
   );

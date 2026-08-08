@@ -1,13 +1,19 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Ship, User, Globe, ChevronDown } from 'lucide-react';
+import { Ship, Globe, ChevronDown, Radio, LogOut, User } from 'lucide-react';
 import { LOCALES } from './locales';
+import PaymentMethodsModal from './PaymentMethodsModal';
+import AuthModalView from './AuthModalView'; // <-- Hier importiert!
 
 export default function HeaderView({ currentLang, setCurrentLang }: any) {
   const [modal, setModal] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+
+  // Status: Login-Erkennung
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loggedInName, setLoggedInName] = useState('Mohamed Ali');
 
   // Formular-Zustände
   const [email, setEmail] = useState('');
@@ -18,7 +24,7 @@ export default function HeaderView({ currentLang, setCurrentLang }: any) {
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [statusType, setStatusType] = useState<'error' | 'success' | 'loading' | null>(null);
 
-  const t = LOCALES[currentLang];
+  const t = LOCALES[currentLang] || LOCALES.DE;
   const languages = [
     { code: 'DE', label: 'Deutsch', flag: '🇩🇪' },
     { code: 'AR', label: 'العربية', flag: '🇩🇿' },
@@ -39,16 +45,13 @@ export default function HeaderView({ currentLang, setCurrentLang }: any) {
         });
 
         const data = await response.json();
-        
         if (response.ok && data.success) {
           setStatusType('success');
-          setInfoMessage("✅ Registrierung erfolgreich! Ihr Konto ist aktiv.");
-          
+          setInfoMessage("✅ Registrierung erfolgreich durchgeführt!");
+          setLoggedInName(name);
           setTimeout(() => {
-            setModal(null);
-            setInfoMessage(null);
-            setStatusType(null);
-            setName(''); setPhone(''); setBirthDate(''); setEmail(''); setPassword('');
+            setModal(null); setInfoMessage(null); setStatusType(null);
+            setIsLoggedIn(true);
           }, 2000);
         } else {
           setStatusType('error');
@@ -56,20 +59,27 @@ export default function HeaderView({ currentLang, setCurrentLang }: any) {
         }
       } catch (err) {
         setStatusType('error');
-        setInfoMessage("❌ Verbindungsfehler: Der Server auf Port 5000 antwortet nicht.");
+        setInfoMessage("❌ Verbindungsfehler zum lokalen Registrierungs-Server.");
       }
     } else {
       setModal(null);
-      alert("Erfolgreich eingeloggt!");
+      setIsLoggedIn(true);
     }
   };
 
   return (
     <>
-      <header className="bg-amber-400 border-b border-amber-500 sticky top-0 z-50 shadow-md px-6 py-4 flex justify-between items-center text-slate-950">
+      {/* TERMINAL STATUS LIVE TICKER */}
+      <div className="bg-[#0b2545] text-amber-400 text-[10px] font-black uppercase tracking-widest py-1.5 px-6 flex justify-between items-center border-b border-sky-950 print-hidden">
+        <div className="flex items-center gap-1.5 animate-pulse"><Radio className="h-3 w-3 text-red-500" /> Live Terminal Status</div>
+        <marquee className="max-w-xl cursor-pointer">⚓ Marseille Terminal 1: Einschiffung geöffnet • ⚓ Algiers Port: Abfertigung läuft flüssig</marquee>
+        <span className="text-slate-400 font-mono text-[9px]">UTC +1</span>
+      </div>
+
+      <header className="bg-amber-400/90 backdrop-blur-md border-b border-amber-500 sticky top-0 z-50 shadow-md px-6 py-4 flex justify-between items-center text-slate-950 print-hidden">
         <div className="flex items-center space-x-3 cursor-pointer" onClick={() => window.location.reload()}>
           <div className="bg-[#0b2545] p-2.5 rounded-2xl text-amber-400 shadow-lg flex items-center justify-center"><Ship className="h-5 w-5" /></div>
-          <span className="text-xl font-black text-slate-950">MED<span className="text-[#0b2545]">FERRIES</span></span>
+          <span className="text-xl font-black text-slate-950 tracking-tight">NISOU<span className="text-blue-600">FERRIES</span></span>
         </div>
         
         <div className="flex items-center space-x-5 text-xs font-bold text-[#0b2545]">
@@ -94,44 +104,35 @@ export default function HeaderView({ currentLang, setCurrentLang }: any) {
             )}
           </div>
 
-          <button onClick={() => { setInfoMessage(null); setAuthMode('login'); setModal('auth'); }} className="bg-[#0b2545] hover:bg-slate-800 text-white font-extrabold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm"><User className="h-3.5 w-3.5" /> {t.login}</button>
+          {isLoggedIn ? (
+            <div className="flex items-center gap-3 bg-emerald-600/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
+              <span className="text-[#0b2545] font-black uppercase text-[11px]">ID: {loggedInName.split(' ')[0]}</span>
+              <button type="button" onClick={() => setIsLoggedIn(false)} className="text-red-700 hover:text-red-900 border-l border-emerald-500/20 pl-2 flex items-center">
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => { setInfoMessage(null); setAuthMode('login'); setModal('auth'); }} className="bg-[#0b2545] text-white font-extrabold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm">
+              <User className="h-3.5 w-3.5" /> {t.login}
+            </button>
+          )}
         </div>
       </header>
 
+      {modal === 'pay' && <PaymentMethodsModal onClose={() => setModal(null)} currentLang={currentLang} />}
+      
       {modal === 'auth' && (
+        <AuthModalView 
+          onClose={() => setModal(null)} authMode={authMode} setAuthMode={setAuthMode} infoMessage={infoMessage} statusType={statusType} handleAuthSubmit={handleAuthSubmit}
+          name={name} setName={setName} phone={phone} setPhone={setPhone} birthDate={birthDate} setBirthDate={setBirthDate} email={email} setEmail={setEmail} password={password} setPassword={setPassword} t={t}
+        />
+      )}
+
+      {modal && modal !== 'auth' && modal !== 'pay' && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white text-slate-900 rounded-[28px] max-w-md w-full p-6 md:p-8 shadow-2xl relative border text-left space-y-5">
-            <button onClick={() => setModal(null)} className="absolute top-4 right-5 font-bold text-slate-400 hover:text-slate-600">✕</button>
-            <h3 className="text-sm font-black uppercase text-slate-400 tracking-wider">{t.authTitle}</h3>
-            
-            <div className="flex bg-slate-100 p-1 rounded-xl w-full border">
-              <button type="button" onClick={() => { setInfoMessage(null); setAuthMode('login'); }} className={`w-1/2 py-2 rounded-lg text-xs font-bold transition-all ${authMode === 'login' ? 'bg-[#0b2545] text-white shadow' : 'text-slate-500'}`}>{t.loginBtn}</button>
-              <button type="button" onClick={() => { setInfoMessage(null); setAuthMode('register'); }} className={`w-1/2 py-2 rounded-lg text-xs font-bold transition-all ${authMode === 'register' ? 'bg-[#0b2545] text-white shadow' : 'text-slate-500'}`}>{t.registerBtn}</button>
-            </div>
-
-            {infoMessage && (
-              <div className={`p-3.5 rounded-xl text-xs font-black leading-relaxed shadow-sm ${statusType === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-900' : statusType === 'loading' ? 'bg-blue-50 border border-blue-200 text-blue-900 animate-pulse' : 'bg-amber-50 border border-amber-200 text-amber-900'}`}>
-                {infoMessage}
-              </div>
-            )}
-
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
-              {authMode === 'register' && (
-                <div className="space-y-3">
-                  <input type="text" required placeholder="Vollständiger Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full border p-3 rounded-xl text-xs font-semibold focus:outline-none" />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="tel" required placeholder="Telefonnummer" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full border p-3 rounded-xl text-xs font-semibold focus:outline-none" />
-                    <input type="date" required value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="w-full border p-3 rounded-xl text-xs font-semibold focus:outline-none cursor-pointer" />
-                  </div>
-                </div>
-              )}
-              <input type="email" required placeholder="E-Mail-Adresse" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border p-3 rounded-xl text-xs font-semibold focus:outline-none" />
-              <input type="password" required placeholder="Sicheres Passwort" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border p-3 rounded-xl text-xs font-semibold focus:outline-none" />
-              
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl text-xs shadow-md uppercase tracking-wider transition-colors">
-                {authMode === 'login' ? t.loginBtn : t.registerBtn}
-              </button>
-            </form>
+          <div className="bg-white p-6 rounded-2xl max-w-sm w-full relative border text-slate-800">
+            <button onClick={() => setModal(null)} className="absolute top-3 right-4 font-bold text-slate-400">✕</button>
+            <p className="text-xs font-bold text-slate-700">{modal === 'about' ? t.aboutText : t.contactText}</p>
           </div>
         </div>
       )}

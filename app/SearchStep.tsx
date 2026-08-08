@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Calendar, Ship, Users, Bed } from 'lucide-react';
+import { Calendar, Ship, Users, Bed, ArrowRight, ShieldCheck } from 'lucide-react';
 import VehicleCockpit from './VehicleCockpit';
+import SafetyVault from './SafetyVault';
 import { LOCALES } from './locales';
 
 const OFFICIAL_FERRY_ROUTES = [
@@ -22,83 +23,107 @@ export default function SearchStep({
 }: any) {
 
   const t = LOCALES[currentLang] || LOCALES.DE;
-  const [selectedRouteId, setSelectedRouteId] = useState(OFFICIAL_FERRY_ROUTES[0].id);
+  const [selectedRouteId, setSelectedRouteId] = useState("mrs-alg");
 
   return (
-    <div className="bg-amber-100 rounded-[32px] shadow-2xl p-6 md:p-8 border-4 border-amber-300 space-y-6 text-left">
+    <div className="bg-white rounded-[32px] shadow-2xl p-6 md:p-8 border border-slate-100 space-y-6 text-left relative overflow-hidden transition-all duration-300">
       
-      {/* 1. EINWEGTICKET / HIN- & RÜCKFAHRT */}
-      <div className="flex bg-amber-200/60 p-1.5 rounded-2xl w-fit border border-amber-300">
-        <button type="button" onClick={() => setIsRound(false)} className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${!isRound ? 'bg-[#0b2545] text-amber-400 shadow-md' : 'text-[#0b2545]/70'}`}>{t.oneWay}</button>
-        <button type="button" onClick={() => setIsRound(true)} className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${isRound ? 'bg-[#0b2545] text-amber-400 shadow-md' : 'text-[#0b2545]/70'}`}>{t.roundTrip}</button>
+      {/* Elegantes Deko-Element im Hintergrund */}
+      <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-600 via-amber-400 to-sky-500"></div>
+      
+      {/* 1. SELEKTOR: EINWEGTICKET / HIN- & RÜCKFAHRT */}
+      <div className="flex bg-slate-50 p-1 rounded-2xl w-fit border border-slate-200 shadow-inner">
+        <button type="button" onClick={() => setIsRound(false)} className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${!isRound ? 'bg-[#0b2545] text-amber-400 shadow-md scale-102' : 'text-slate-600 hover:text-slate-900'}`}>{t.oneWay}</button>
+        <button type="button" onClick={() => setIsRound(true)} className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${isRound ? 'bg-[#0b2545] text-amber-400 shadow-md scale-102' : 'text-slate-600 hover:text-slate-900'}`}>{t.roundTrip}</button>
       </div>
 
-      {/* 2. STRECKEN & REISE-DATEN */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 shadow-sm text-[#0b2545]">
-          <label className="text-[10px] font-black text-[#0b2545]/60 block uppercase tracking-widest mb-1.5 flex items-center gap-1">
-            <Ship className="h-3.5 w-3.5 text-[#0b2545]" /> {t.selectRoute}
+      {/* 2. ROUTEN- UND REISEDATEN-GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+          <label className="text-[10px] font-black text-slate-400 block uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <Ship className="h-3.5 w-3.5 text-blue-600" /> {t.selectRoute}
           </label>
-          <select value={selectedRouteId} onChange={(e) => setSelectedRouteId(e.target.value)} className="w-full bg-transparent font-black text-[#0b2545] text-base focus:outline-none cursor-pointer">
+          <select value={selectedRouteId} onChange={(e) => setSelectedRouteId(e.target.value)} className="w-full bg-transparent font-black text-slate-800 text-sm md:text-base focus:outline-none cursor-pointer">
             {OFFICIAL_FERRY_ROUTES.map(route => (
-              <option key={route.id} value={route.id} className="text-[#0b2545] font-bold">{route.from} ➔ {route.to}</option>
+              <option key={route.id} value={route.id} className="text-slate-800 font-bold bg-white">{route.from} ➔ {route.to}</option>
             ))}
           </select>
         </div>
 
-        <div className="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 shadow-sm text-[#0b2545]">
-          <label className="text-[10px] font-black text-[#0b2545]/60 block uppercase tracking-widest mb-1.5 flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-[#0b2545]" /> {t.depDate}</label>
-          <input type="date" value={depDate} onChange={(e) => setDepDate(e.target.value)} className="w-full bg-transparent font-black text-[#0b2545] text-base focus:outline-none cursor-pointer" />
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+          <label className="text-[10px] font-black text-slate-400 block uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-blue-600" /> {t.depDate}
+          </label>
+          <input type="date" value={depDate} onChange={(e) => setDepDate(e.target.value)} className="w-full bg-transparent font-black text-slate-800 text-sm md:text-base focus:outline-none cursor-pointer" />
         </div>
 
-        <div className={`bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 shadow-sm text-[#0b2545] transition-all ${isRound ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
-          <label className="text-[10px] font-black text-[#0b2545]/60 block uppercase tracking-widest mb-1.5 flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-[#0b2545]" /> {t.retDate}</label>
-          <input type="date" value={retDate} onChange={(e) => setRetDate(e.target.value)} className="w-full bg-transparent font-black text-[#0b2545] text-base focus:outline-none" />
+        <div className={`bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm transition-all ${isRound ? 'opacity-100 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100' : 'opacity-40 pointer-events-none'}`}>
+          <label className="text-[10px] font-black text-slate-400 block uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-blue-600" /> {t.retDate}
+          </label>
+          <input type="date" value={retDate} onChange={(e) => setRetDate(e.target.value)} disabled={!isRound} className="w-full bg-transparent font-black text-slate-800 text-sm md:text-base focus:outline-none cursor-pointer" />
         </div>
       </div>
 
       {/* 3. REISENDE & UNTERBRINGUNG */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-amber-200 pt-5">
-        <div className="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 shadow-sm text-[#0b2545] flex justify-between items-center">
-          <div className="flex items-center gap-2"><span className="text-sm font-black uppercase tracking-wider text-[11px] text-[#0b2545]/60">{t.adults}</span></div>
-          <input type="number" min="1" value={adults} onChange={(e) => setAdults(Number(e.target.value))} className="w-14 bg-white border border-amber-200 rounded-xl py-1.5 text-center font-black text-[#0b2545] focus:outline-none" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 border-t border-slate-100 pt-5">
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+          <div className="flex flex-col"><span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{t.adults}</span><span className="text-[11px] text-slate-400 font-medium">Ab 12 Jahren</span></div>
+          <input type="number" min="1" max="9" value={adults} onChange={(e) => setAdults(Number(e.target.value))} className="w-12 bg-white border border-slate-200 rounded-xl py-1.5 text-center font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
-        <div className="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 shadow-sm text-[#0b2545] flex justify-between items-center">
-          <div className="flex items-center gap-2"><span className="text-sm font-black uppercase tracking-wider text-[11px] text-[#0b2545]/60">{t.children}</span></div>
-          <input type="number" min="0" value={children} onChange={(e) => setChildren(Number(e.target.value))} className="w-14 bg-white border border-amber-200 rounded-xl py-1.5 text-center font-black text-[#0b2545] focus:outline-none" />
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+          <div className="flex flex-col"><span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{t.children}</span><span className="text-[11px] text-slate-400 font-medium">2 - 11 Jahre</span></div>
+          <input type="number" min="0" max="9" value={children} onChange={(e) => setChildren(Number(e.target.value))} className="w-12 bg-white border border-slate-200 rounded-xl py-1.5 text-center font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
-        <div className="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 shadow-sm text-[#0b2545]">
-          <label className="text-[10px] font-black text-[#0b2545]/60 block uppercase tracking-widest mb-1 flex items-center gap-1"><Bed className="h-3.5 w-3.5 text-[#0b2545]" /> {accommodation === 'Cabin' ? t.cabin : t.deck}</label>
-          <select value={accommodation} onChange={(e) => setAccommodation(e.target.value)} className="w-full bg-transparent font-black text-[#0b2545] text-sm focus:outline-none cursor-pointer">
-            <option value="Cabin" className="text-[#0b2545] font-bold">{t.cabin}</option>
-            <option value="NoCabin" className="text-[#0b2545] font-bold">{t.deck}</option>
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+          <label className="text-[10px] font-black text-slate-400 block uppercase tracking-widest mb-1 flex items-center gap-1.5"><Bed className="h-3.5 w-3.5 text-blue-600" /> {t.cabin}</label>
+          <select value={accommodation} onChange={(e) => setAccommodation(e.target.value)} className="w-full bg-transparent font-black text-slate-800 text-sm focus:outline-none cursor-pointer">
+            <option value="Cabin" className="text-slate-800 font-bold bg-white">{t.cabin}</option>
+            <option value="NoCabin" className="text-slate-800 font-bold bg-white">{t.deck}</option>
           </select>
         </div>
       </div>
 
-      {/* 4. FAHRZEUGKATEGORIEN */}
-      <div className="space-y-2 border-t border-amber-200 pt-5">
-        <label className="text-[10px] font-black text-slate-600 block uppercase tracking-widest">{t.category}</label>
+      {/* 4. SEKTION: FAHRZEUGAUSWAHL ALS MODERNE DESIGN-CHIPS */}
+      <div className="space-y-2.5 border-t border-slate-100 pt-5">
+        <label className="text-[10px] font-black text-slate-400 block uppercase tracking-widest">{t.category}</label>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
             { id: 'Car', label: t.pkw }, { id: 'Van', label: t.van },
             { id: 'Bus', label: t.bus }, { id: 'Motorcycle', label: t.moto },
             { id: 'None', label: t.pedestrian }
-          ].map((v) => (
-            <button key={v.id} type="button" onClick={() => setVehicle(v.id)} className={`p-4 rounded-2xl border-2 font-black text-xs transition-all shadow-md ${vehicle === v.id ? 'border-[#0b2545] bg-[#0b2545] text-amber-400 text-sm font-black' : 'border-amber-300 text-slate-700 bg-white hover:border-amber-400'}`}>{v.label}</button>
-          ))}
+          ].map((v) => {
+            const isActive = vehicle === v.id;
+            return (
+              <button 
+                key={v.id} 
+                type="button" 
+                onClick={() => setVehicle(v.id)} 
+                className={`p-3.5 rounded-2xl border-2 font-black text-xs transition-all duration-200 text-center flex items-center justify-center h-14 ${
+                  isActive 
+                    ? 'border-[#0b2545] bg-[#0b2545] text-amber-400 shadow-md scale-102' 
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                {v.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
+      {/* INTEGRIERTE COCKPIT- & SECURITY-MODULE */}
       <VehicleCockpit vehicle={vehicle} currentLang={currentLang} />
+      <SafetyVault currentLang={currentLang} vehicle={vehicle} />
 
-      {/* DER NEUE BUTTON: FÄHRE SUCHEN */}
+      {/* HAUPT-SUCHBUTTON IM MODERNEN FLUGPORTAL-DESIGN */}
       <button 
         type="button" 
         onClick={onSearch} 
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4.5 rounded-2xl shadow-xl text-center text-lg tracking-wider transition-all duration-200"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg hover:shadow-xl text-center text-sm md:text-base uppercase tracking-wider transition-all duration-200 transform active:scale-[0.99] flex items-center justify-center gap-2"
       >
-        {t.searchBtn}
+        <span>{t.searchBtn}</span>
+        <ArrowRight className="h-4 w-4" />
       </button>
     </div>
   );
