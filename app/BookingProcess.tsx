@@ -5,6 +5,8 @@ import BookingFormSteps from './BookingFormSteps';
 import BookingSummarySteps from './BookingSummarySteps';
 import { getPrintWindowContent } from './printTemplate';
 import { ticketPrintStyles } from './ticketStyles';
+import { calculateDynamicFerryPrice } from './priceEngine';
+import { saveBookingSession, loadBookingSession, clearBookingSession } from './sessionStorage'; // <-- Hier importiert!
 
 export default function BookingProcess({ origin, destination, selectedOffer, vehicle, setStep, setBookingStage, adults, children }: any) {
   const [subStage, setSubStage] = useState<'step5_data' | 'step6_extras' | 'step7_summary' | 'step8_pay' | 'step10_confirmed'>('step5_data');
@@ -18,37 +20,48 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
   const [isPaying, setIsPaying] = useState(false);
   const [pnrNumber, setPnrNumber] = useState('');
 
+  // ⚡ LÄDT DIE SITZUNG AUTOMATISCH BEIM STARTFALLBACK BACK
   useEffect(() => {
-    const list = [];
-    const totalAdults = Number(adults) || 1;
-    const totalChildren = Number(children) || 0;
-    for (let i = 0; i < totalAdults; i++) list.push({ id: `a-${i}`, type: "Erwachsener", firstName: "", lastName: "", birthDate: "", nationality: "Deutsch", passport: "" });
-    for (let i = 0; i < totalChildren; i++) list.push({ id: `c-${i}`, type: "Kind", firstName: "", lastName: "", birthDate: "", nationality: "Deutsch", passport: "" });
-    setPassengerDetails(list);
+    const savedData = loadBookingSession();
+    if (savedData) {
+      setPassengerDetails(savedData.passengerDetails || []);
+      setMainEmail(savedData.mainEmail || '');
+      setMainPhone(savedData.mainPhone || '');
+      setPlateNumber(savedData.plateNumber || '');
+      setSubStage(savedData.subStage || 'step5_data');
+    } else {
+      const list = [];
+      const totalAdults = Number(adults) || 1;
+      const totalChildren = Number(children) || 0;
+      for (let i = 0; i < totalAdults; i++) list.push({ id: `a-${i}`, type: "Erwachsener", firstName: "", lastName: "", birthDate: "", nationality: "Deutsch", passport: "" });
+      for (let i = 0; i < totalChildren; i++) list.push({ id: `c-${i}`, type: "Kind", firstName: "", lastName: "", birthDate: "", nationality: "Deutsch", passport: "" });
+      setPassengerDetails(list);
+    }
   }, [adults, children]);
+
+  // ⚡ SICHERT JEDE ÄNDERUNG SOFORT IM HINTERGRUND-SPEICHER
+  useEffect(() => {
+    if (subStage !== 'step10_confirmed') {
+      saveBookingSession({ passengerDetails, mainEmail, mainPhone, plateNumber, subStage });
+    }
+  }, [passengerDetails, mainEmail, mainPhone, plateNumber, subStage]);
 
   const updatePassenger = (id: string, field: string, value: string) => {
     setPassengerDetails(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
-  // Mathematisch exakte Preiskalkulation nach Ihren Tarifvorgaben
-  const basePricePerPerson = selectedOffer?.basePrice || 120;
-  const baseVehiclePrice = selectedOffer?.vehiclePrice || 80;
-  const baseCabinPrice = selectedOffer?.cabinPrice || 60;
-
-  const ticketCost = (Number(adults) + Number(children)) * basePricePerPerson;
-  const vehicleCost = vehicle !== 'None' ? baseVehiclePrice : 0;
-  const cabinCost = selectedCabin ? baseCabinPrice : 0;
-  const mealCost = selectedMeal ? 30 * (Number(adults) + Number(children)) : 0;
-  const petCost = selectedPet ? 40 : 0;
-  const totalCost = ticketCost + vehicleCost + cabinCost + mealCost + petCost;
+  const priceCalculation = calculateDynamicFerryPrice(
+    adults, children, vehicle, selectedOffer, selectedCabin, selectedMeal, selectedPet
+  );
 
   const handlePayment = (e: React.FormEvent) => {
     e.preventDefault(); setIsPaying(true);
     setTimeout(() => {
       setPnrNumber("TRV-2026-" + Math.floor(100000 + Math.random() * 900000));
-      setIsPaying(false); setSubStage('step10_confirmed');
-    }, 1500);
+      setIsPaying(false); 
+      clearBookingSession(); // Löscht die temporäre Session nach Erfolg
+      setSubStage('step10_confirmed');
+    }, 2000);
   };
 
   const handlePrint = () => {
@@ -78,8 +91,14 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
       {(subStage === 'step7_summary' || subStage === 'step8_pay' || subStage === 'step10_confirmed') && (
         <BookingSummarySteps 
           subStage={subStage} setSubStage={setSubStage} selectedOffer={selectedOffer} origin={origin} destination={destination}
-          adults={adults} children={children} vehicle={vehicle} selectedCabin={selectedCabin} ticketCost={ticketCost} vehicleCost={vehicleCost}
-          cabinCost={cabinCost} mealCost={mealCost} petCost={petCost} totalCost={totalCost} isPaying={isPaying} handlePayment={handlePayment}
+          adults={adults} children={children} vehicle={vehicle} selectedCabin={selectedCabin} 
+          ticketCost={priceCalculation.ticketCost} 
+          vehicleCost={priceCalculation.vehicleCost}
+          cabinCost={priceCalculation.cabinCost} 
+          mealCost={priceCalculation.mealCost} 
+          petCost={priceCalculation.petCost} 
+          totalCost={priceCalculation.totalCost} 
+          isPaying={isPaying} handlePayment={handlePayment}
           pnrNumber={pnrNumber} passengerDetails={passengerDetails} plateNumber={plateNumber} mainEmail={mainEmail} setBookingStage={setBookingStage} setStep={setStep} handlePrint={handlePrint}
         />
       )}
