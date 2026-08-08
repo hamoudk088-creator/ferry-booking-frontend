@@ -1,0 +1,21 @@
+export const BRAND_MODELS_DB: Record<string, string[]> = {
+  "Volkswagen": ["Golf", "Polo", "Passat", "Tiguan", "Touareg", "T-Roc", "T-Cross", "Touran", "Caddy", "Crafter", "ID.3", "ID.4", "ID.7", "Arteon", "Up"],
+  "Mercedes-Benz": ["A-Klasse", "B-Klasse", "C-Klasse", "E-Klasse", "S-Klasse", "CLA", "CLS", "GLA", "GLB", "GLC", "GLE", "GLS", "G-Klasse", "Vito", "V-Klasse", "Sprinter"],
+  "BMW": ["1er", "2er", "3er", "4er", "5er", "7er", "8er", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "Z4", "i3", "i4", "i7", "iX1", "iX3", "iX"],
+  "Audi": ["A1", "A3", "A4", "A5", "A6", "A7", "A8", "Q2", "Q3", "Q4", "Q5", "Q7", "Q8", "TT", "R8", "e-tron"],
+  "Opel": ["Corsa", "Astra", "Insignia", "Mokka", "Crossland", "Grandland", "Zafira", "Vivaro", "Combo", "Adam"],
+  "Ford": ["Fiesta", "Focus", "Mondeo", "Puma", "Kuga", "Explorer", "Mustang", "Transit", "Tourneo", "Galaxy", "S-Max"],
+  "Renault": ["Twingo", "Clio", "Megane", "Scenic", "Talisman", "Espace", "Captur", "Kadjar", "Austral", "Zoe", "Trafic", "Master"],
+  "Peugeot": ["108", "208", "308", "408", "508", "2008", "3008", "5008", "Partner", "Rifter", "Expert", "Boxer"],
+  "Fiat": ["500", "Panda", "Tipo", "Punto", "600", "500X", "500L", "Ducato", "Doblo", "Scudo"],
+  "Dacia": ["Sandero", "Logan", "Duster", "Jogger", "Spring", "Lodgy", "Dokker"],
+  "Toyota": ["Aygo", "Yaris", "Corolla", "Camry", "Prius", "Yaris Cross", "C-HR", "RAV4", "Highlander", "Land Cruiser", "Hilux", "Proace"],
+  "Hyundai": ["i10", "i20", "i30", "i40", "Kona", "Tucson", "Santa Fe", "Bayon", "Ioniq 5", "Ioniq 6", "Staria"],
+  "Kia": ["Picanto", "Rio", "Ceed", "ProCeed", "Optima", "Stonic", "Niro", "Sportage", "Sorento", "EV6", "EV9"],
+  "Skoda": ["Citigo", "Fabia", "Scala", "Octavia", "Superb", "Kamiq", "Karoq", "Kodiaq", "Enyaq", "Yeti"],
+  "Seat": ["Mii", "Ibiza", "Leon", "Toledo", "Arona", "Ateca", "Tarraco", "Alhambra"],
+  "Tesla": ["Model 3", "Model Y", "Model S", "Model X"],
+  "Volvo": ["V40", "V60", "V90", "S60", "S90", "XC40", "XC60", "XC90", "EX30"],
+  "Nissan": ["Micra", "Leaf", "Juke", "Qashqai", "X-Trail", "Ariya", "Navara", "Primastar"],
+  "MINI": ["Cooper", "One", "Clubman", "Countryman"]
+};
