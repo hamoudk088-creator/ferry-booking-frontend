@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
-import { ShieldCheck, QrCode, Printer, FileText, Ship, Calendar, Clock } from 'lucide-react';
+import { ShieldCheck, QrCode, Printer, FileText, Calendar, Clock } from 'lucide-react';
 import MailInboxView from './MailInboxView';
+import SecurityLogTerminal from './SecurityLogTerminal'; // <-- Hier importiert!
 
 export default function BookingSummarySteps({ subStage, setSubStage, selectedOffer, origin, destination, adults, children, vehicle, selectedCabin, ticketCost, vehicleCost, cabinCost, mealCost, petCost, totalCost, isPaying, handlePayment, pnrNumber, passengerDetails, plateNumber, mainEmail, setBookingStage, setStep, handlePrint }: any) {
   return (
@@ -30,7 +31,7 @@ export default function BookingSummarySteps({ subStage, setSubStage, selectedOff
         </div>
       )}
 
-      {/* SCHRITT 8 & 9: ZAHLUNG */}
+      {/* SCHRITT 8 & 9: ZAHLUNG MIT CYBER-CONVENTIONAL TERMINAL */}
       {subStage === 'step8_pay' && (
         <form onSubmit={handlePayment} className="bg-white rounded-3xl p-6 border shadow-xl max-w-md mx-auto space-y-4 text-center">
           <h3 className="text-sm font-black text-[#0b2545] border-b pb-2 text-left uppercase tracking-wider">💳 Schritt 8 &amp; 9: Zahlung</h3>
@@ -38,11 +39,15 @@ export default function BookingSummarySteps({ subStage, setSubStage, selectedOff
             <div className="flex justify-between items-center"><span className="text-[10px] font-black tracking-widest text-blue-200">STRIPE GATEWAY</span><span className="text-base font-bold">VISA</span></div>
             <div className="text-base tracking-[0.2em] font-black text-center py-4">4242 4242 4242 4242</div>
           </div>
-          <button type="submit" disabled={isPaying} className="w-full bg-blue-600 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest">{isPaying ? "🔒 Verschlüsselung aktiv..." : `Jetzt bezahlen (${totalCost} €)`}</button>
+          
+          {/* TERMINAL LOG INTEGRATION HIER */}
+          <SecurityLogTerminal isPaying={isPaying} totalCost={totalCost} />
+
+          <button type="submit" disabled={isPaying} className="w-full bg-blue-600 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest disabled:opacity-40">{isPaying ? "🔒 Tokenisierung aktiv..." : `Jetzt bezahlen (${totalCost} €)`}</button>
         </form>
       )}
 
-      {/* SCHRITT 10: BUCHUNGSBESTÄTIGUNG */}
+      {/* SCHRITT 10: CONFIRMED */}
       {subStage === 'step10_confirmed' && (
         <div className="space-y-6">
           <div className="bg-white rounded-[32px] shadow-2xl p-6 md:p-8 border max-w-xl mx-auto text-center space-y-6 ticket-container">
@@ -52,7 +57,6 @@ export default function BookingSummarySteps({ subStage, setSubStage, selectedOff
               <p className="text-xs text-slate-500">Buchungsnummer: <b>{pnrNumber}</b></p>
             </div>
 
-            {/* 🎫 DAS OFFIZIELLE TICKET */}
             <div id="final-print-ticket" className="ticket-card border-2 border-slate-900 rounded-[20px] p-5 bg-slate-50/40 text-left relative space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
                 <div className="flex items-center gap-1.5"><span className="text-sm font-black text-slate-950">🚢 NISOUFERRIES</span></div>
@@ -84,7 +88,7 @@ export default function BookingSummarySteps({ subStage, setSubStage, selectedOff
               <div className="pt-3 border-t border-slate-200/60 flex flex-col items-center">
                 <QrCode className="h-14 w-14 text-slate-950 mb-1" />
                 <div className="h-6 w-48 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#000_2px,#000_4px)] opacity-60"></div>
-                <span className="text-[7px] font-mono tracking-[0.3em] font-black text-slate-400 uppercase">{pnrNumber}</span>
+                <span className="text-[8px] font-mono tracking-[0.3em] font-black text-slate-400 uppercase">{pnrNumber}</span>
               </div>
             </div>
             <div className="print-hidden grid grid-cols-2 gap-2"><button type="button" onClick={handlePrint} className="bg-blue-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1"><Printer className="h-4 w-4" /> Ticket anzeigen / PDF</button><button type="button" onClick={() => { setBookingStage('list'); setStep(1); }} className="bg-slate-100 text-slate-700 font-black py-3 rounded-xl text-xs uppercase tracking-wider">Neue Suche</button></div>

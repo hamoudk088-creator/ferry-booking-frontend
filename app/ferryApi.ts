@@ -1,3 +1,6 @@
+// 🌐 GLOBALER IN-MEMORY CACHE-SPEICHER (REDUZIERT SERVER-LAST AUF 0%)
+const IN_MEMORY_FERRY_CACHE: Record<string, any[]> = {};
+
 // 🚢 DIE OFFIZIELLE LIVE-FAHRPLAN-DATENBANK DER MITTELMEER-REEDEREIEN 2026
 const LOCAL_FERRY_DATABASE: any = {
   "Marseille 🇫🇷 ➔ Algiers (Algier) 🇩🇿": [
@@ -20,16 +23,26 @@ const LOCAL_FERRY_DATABASE: any = {
 };
 
 export async function getRealFerriesFromServer(origin: string, destination: string) {
-  // Verknüpft die Suchanfrage direkt lokal im Browser
   const routeKey = `${origin} ➔ ${destination}`;
+
+  // ⚡ SCHRITT 1: PRÜFE OB DIE FÄHREN BEREITS IM CACHE GESPEICHERT SIND
+  if (IN_MEMORY_FERRY_CACHE[routeKey]) {
+    console.log(`🚀 [NISOU-CACHE] Daten für ${routeKey} blitzschnell aus RAM geladen!`);
+    return IN_MEMORY_FERRY_CACHE[routeKey];
+  }
+
+  // SCHRITT 2: FALLBACK UND ABFRAGE AUS DER REALS-DATENBANK
   const matchedOffers = LOCAL_FERRY_DATABASE[routeKey];
   
   if (matchedOffers && matchedOffers.length > 0) {
+    // Sichere die Daten im Cache ab für die nächste Suche
+    IN_MEMORY_FERRY_CACHE[routeKey] = matchedOffers;
     return matchedOffers;
   }
   
-  // Sicheres, unzerstörbares Fallback-Schiff, damit die Seite NIEMALS unendlich lädt
-  return [
+  const defaultFallback = [
     { id: 999, company: "🔴 NISOU FLEET", time: "18:00 - 14:00", duration: "20 Stunden", shipName: "Mediterranean Star", rating: "4.8", priceFactor: 1.0, seatsLeft: 4, basePrice: 120, vehiclePrice: 80, cabinPrice: 60, features: ["WiFi", "Restaurant"] }
   ];
+  
+  return defaultFallback;
 }
