@@ -5,7 +5,7 @@ import HeaderView from './HeaderView';
 import AnimatedMap from './AnimatedMap';
 import SearchStep from './SearchStep';
 import ResultsView from './ResultsView';
-import LandingContent from './LandingContent';
+import LandingContent from './LandingContent'; // <-- Hier importiert!
 import AiChatbot from './AiChatbot';
 import { LOCALES } from './locales';
 
@@ -13,7 +13,7 @@ export default function Home() {
   const [step, setStep] = useState(1);
   const [currentLang, setCurrentLang] = useState('DE');
   
-  // Suchmasken-Zustände (Start- und Zielhäfen)
+  // Zentrale Suchmasken-Zustände
   const [origin, setOrigin] = useState('Marseille 🇫🇷');
   const [destination, setDestination] = useState('Algiers (Algier) 🇩🇿');
   const [depDate, setDepDate] = useState('2026-09-15');
@@ -26,7 +26,6 @@ export default function Home() {
 
   const t = LOCALES[currentLang] || LOCALES.DE;
 
-  // Mathematische Preisberechnung für das Ticket
   const getPrice = () => {
     let base = accommodation === 'Cabin' ? 260 : 180;
     if (vehicle === 'Van') base += 90;
@@ -44,12 +43,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#f4f8f9] text-slate-900 antialiased font-sans relative">
       
-      {/* HEADER & ANIMIERTE SEE-KARTE */}
+      {/* HEADER & TÜRKIS-GELBE DEKO-KARTE */}
       <div className="print-hidden">
         <HeaderView currentLang={currentLang} setCurrentLang={setCurrentLang} />
         <AnimatedMap currentLang={currentLang} />
         
-        {/* NAVIGATIONS-FORTSCHRITTSBAR */}
+        {/* PROGRESS-BAR */}
         <div className="w-full bg-[#0b2545] border-b border-sky-900/40 py-4 px-6">
           <div className="max-w-3xl mx-auto flex items-center justify-between relative">
             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-700/60 z-0"></div>
@@ -76,11 +75,10 @@ export default function Home() {
         )}
       </div>
 
-      {/* HAUPT-LOGIK BEREICH */}
-      <main className="max-w-5xl mx-auto px-6 pb-24 relative z-20 mt-6">
+      {/* HAUPTCONTENT-CONTAINER */}
+      <main className="max-w-5xl mx-auto px-6 pb-24 relative z-20 mt-2">
         {step === 1 && (
           <>
-            {/* HIER WERDEN DIE VARIABLEN ORIGIN UND DESTINATION PROFIHAFT AN DIE SUCHMASCHINE ÜBERGEBEN */}
             <SearchStep 
               vehicle={vehicle} setVehicle={setVehicle} accommodation={accommodation} setAccommodation={setAccommodation}
               adults={adults} setAdults={setAdults} children={children} setChildren={setChildren}
@@ -89,13 +87,10 @@ export default function Home() {
               destination={destination} setDestination={setDestination} onSearch={() => setStep(2)}
               currentLang={currentLang}
             />
-            <div className="print-hidden">
-              <LandingContent currentLang={currentLang} />
-            </div>
+            <LandingContent currentLang={currentLang} />
           </>
         )}
 
-        {/* SCHRITT 2: HIER FLIESSEN DIE PARAMETER DIREKT IN DIE ERGEBNIS-LISTE DER ECHTEN FÄHREN */}
         {step === 2 && (
           <ResultsView 
             origin={origin} 

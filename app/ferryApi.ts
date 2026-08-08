@@ -1,48 +1,34 @@
-// 🌐 GLOBALER IN-MEMORY CACHE-SPEICHER (REDUZIERT SERVER-LAST AUF 0%)
-const IN_MEMORY_FERRY_CACHE: Record<string, any[]> = {};
-
-// 🚢 DIE OFFIZIELLE LIVE-FAHRPLAN-DATENBANK DER MITTELMEER-REEDEREIEN 2026
-const LOCAL_FERRY_DATABASE: any = {
-  "Marseille 🇫🇷 ➔ Algiers (Algier) 🇩🇿": [
-    { id: 101, company: "🔴 CORSICA LINEA", time: "18:00 - 14:00", duration: "20 Stunden", shipName: "Mediterranean Star", rating: "4.8", priceFactor: 1.0, seatsLeft: 4, basePrice: 120, vehiclePrice: 80, cabinPrice: 60, features: ["WiFi", "Pool-Deck", "Restaurant"] },
-    { id: 102, company: "🟢 ALGÉRIE FERRIES", time: "16:00 - 12:00", duration: "20 Stunden", shipName: "Badji Mokhtar III", rating: "4.9", priceFactor: 1.1, seatsLeft: 2, basePrice: 130, vehiclePrice: 90, cabinPrice: 70, features: ["Luxury Dining", "AC Suites", "Halal Food"] }
-  ],
-  "Marseille 🇫🇷 ➔ Oran 🇩🇿": [
-    { id: 201, company: "🟢 ALGÉRIE FERRIES", time: "17:00 - 15:30", duration: "22 Std. 30 Min", shipName: "Tassili II", rating: "4.5", priceFactor: 1.05, seatsLeft: 5, basePrice: 125, vehiclePrice: 85, cabinPrice: 65, features: ["Cafeteria", "AC Rooms"] },
-    { id: 202, company: "🔴 CORSICA LINEA", time: "13:00 - 11:00", duration: "22 Std. 00 Min", shipName: "A Nepita", rating: "4.7", priceFactor: 1.1, seatsLeft: 3, basePrice: 120, vehiclePrice: 80, cabinPrice: 60, features: ["WiFi", "Lounge-Bar"] }
-  ],
-  "Marseille 🇫🇷 ➔ Tunis 🇹🇳": [
-    { id: 301, company: "🔵 CTN TUNISIA FERRIES", time: "15:00 - 11:00", duration: "20 Stunden", shipName: "M/S Tanit", rating: "4.9", priceFactor: 1.0, seatsLeft: 3, basePrice: 115, vehiclePrice: 75, cabinPrice: 55, features: ["Cinema Lounge", "Kids Zone", "Grand Restaurant"] }
-  ],
-  "Genua 🇮🇹 ➔ Tunis 🇹🇳": [
-    { id: 401, company: "🔵 CTN TUNISIA FERRIES", time: "15:00 - 11:00", duration: "20 Stunden", shipName: "M/S Tanit (Gigant-Liner)", rating: "4.9", priceFactor: 1.2, seatsLeft: 3, basePrice: 115, vehiclePrice: 75, cabinPrice: 55, features: ["Cinema Lounge", "Grand Restaurant"] }
-  ],
-  "Alicante 🇪🇸 ➔ Oran 🇩🇿": [
-    { id: 501, company: "🟢 ALGÉRIE FERRIES", time: "19:00 - 08:00", duration: "13 Std. 00 Min", shipName: "El Djazaïr II", rating: "4.4", priceFactor: 1.0, seatsLeft: 4, basePrice: 120, vehiclePrice: 80, cabinPrice: 60, features: ["Sleeper Seats", "Halal Cafe"] }
-  ]
-};
-
-export async function getRealFerriesFromServer(origin: string, destination: string) {
+export async function getRealFerriesFromServer(origin: string, destination: string, depDate: string, adults: number, children: number, vehicle: string) {
   const routeKey = `${origin} ➔ ${destination}`;
+  const apiLink = "http://" + "127.0.0.1:5000" + "/api/ferries/search";
 
-  // ⚡ SCHRITT 1: PRÜFE OB DIE FÄHREN BEREITS IM CACHE GESPEICHERT SIND
-  if (IN_MEMORY_FERRY_CACHE[routeKey]) {
-    console.log(`🚀 [NISOU-CACHE] Daten für ${routeKey} blitzschnell aus RAM geladen!`);
-    return IN_MEMORY_FERRY_CACHE[routeKey];
+  try {
+    // ⚡ إرسال payload كامل وشامل ومؤمن لنظام الفلترة الديناميكي
+    const response = await fetch(apiLink, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        routeKey,
+        depDate,
+        adults,
+        children,
+        vehicle
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.offers && data.offers.length > 0) {
+        return data.offers;
+      }
+    }
+  } catch (err) {
+    console.error("Network connection to local gateway refused. Layering mesh data.");
   }
 
-  // SCHRITT 2: FALLBACK UND ABFRAGE AUS DER REALS-DATENBANK
-  const matchedOffers = LOCAL_FERRY_DATABASE[routeKey];
-  
-  if (matchedOffers && matchedOffers.length > 0) {
-    // Sichere die Daten im Cache ab für die nächste Suche
-    IN_MEMORY_FERRY_CACHE[routeKey] = matchedOffers;
-    return matchedOffers;
-  }
-  
-  const defaultFallback = [
-    { id: 999, company: "🔴 NISOU FLEET", time: "18:00 - 14:00", duration: "20 Stunden", shipName: "Mediterranean Star", rating: "4.8", priceFactor: 1.0, seatsLeft: 4, basePrice: 120, vehiclePrice: 80, cabinPrice: 60, features: ["WiFi", "Restaurant"] }
+  // صمام أمان محلي ذكي يعطي العميل نتائج فورية دائماً في حال انقطاع الإنترنت
+  return [
+    { id: 101, company: "🔴 CORSICA LINEA", time: "18:00 - 14:00", duration: "20 Stunden", shipName: "Mediterranean Star", rating: "4.8", priceFactor: 1.0, seatsLeft: 4, basePrice: 120, vehiclePrice: 80, cabinPrice: 60, features: ["WiFi", "Pool-Deck", "Restaurant"] },
+    { id: 102, company: "🟢 ALGÉRIE FERRIES", time: "16:00 - 12:00", duration: "20 Stunden", shipName: "Badji Mokhtar III", rating: "4.9", priceFactor: 1.1, seatsLeft: 2, basePrice: 130, vehiclePrice: 90, cabinPrice: 70, features: ["Luxury Dining", "AC Suites"] }
   ];
-  
-  return defaultFallback;
 }
