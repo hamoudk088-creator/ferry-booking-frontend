@@ -1,17 +1,26 @@
 "use client";
 
-// Speichert den aktuellen Buchungszustand sicher im Browser des Kunden
 export function saveBookingSession(data: any) {
   try {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('nisou_booking_session', JSON.stringify(data));
+      // Bereinigt sensible Zwischendaten vor dem Ablegen im localStorage gegen XSS-Auslesung
+      const sanitizedData = {
+        subStage: data.subStage,
+        mainEmail: data.mainEmail,
+        plateNumber: data.plateNumber,
+        passengerDetails: data.passengerDetails?.map((p: any) => ({
+          type: p.type,
+          firstName: p.firstName,
+          lastName: p.lastName
+        }))
+      };
+      localStorage.setItem('nisou_booking_session', JSON.stringify(sanitizedData));
     }
   } catch (err) {
-    console.error("Fehler beim Sichern der Sitzung:", err);
+    console.error("Session serialization warning:", err);
   }
 }
 
-// Holt den letzten Zustand bei einem versehentlichen Neuladen sofort zurück
 export function loadBookingSession() {
   try {
     if (typeof window !== 'undefined') {
@@ -19,12 +28,10 @@ export function loadBookingSession() {
       return session ? JSON.parse(session) : null;
     }
   } catch (err) {
-    console.error("Fehler beim Laden der Sitzung:", err);
+    return null;
   }
-  return null;
 }
 
-// Löscht die Sitzungsdaten nach erfolgreichem Ticketdruck für die nächste Buchung
 export function clearBookingSession() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('nisou_booking_session');

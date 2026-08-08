@@ -10,16 +10,8 @@ import { saveBookingSession, loadBookingSession, clearBookingSession } from './s
 
 export default function BookingProcess({ origin, destination, selectedOffer, vehicle, setStep, setBookingStage, adults, children }: any) {
   
-  /* 
-    🚀 DER EXAKTE TRAVERSA-ABLAUFPLAN (SCHRITT-FÜR-SCHRITT ARCHITEKTUR):
-    'list'            ➔ Schritt 4: FerryResults (Fähre und Verbindung auswählen)
-    'step7_summary'   ➔ Schritt 7: BookingSummary (Buchungsübersicht mit Preistabelle)
-    'step5_data'      ➔ Schritt 5: PassengerForm (Personendaten eingeben)
-    'step6_extras'    ➔ Schritt 6: Extras (Zusatzleistungen: Kabine, Mahlzeit, Haustier)
-    'step8_pay'       ➔ Schritt 8 & 9: PaymentScreen (Sichere Stripe-Zahlung)
-    'step10_confirmed'➔ Schritt 10: BookingConfirmation & Ticket (Erfolgreich ausgestellt)
-  */
-  const [subStage, setSubStage] = useState<'list' | 'step7_summary' | 'step5_data' | 'step6_extras' | 'step8_pay' | 'step10_confirmed'>('step5_data');
+  // ⚡ TRAVERSA SEQUENCE CONTROL: Garantiert den korrekten Einstiegspunkt bei Schritt 5
+  const [subStage, setSubStage] = useState<'step5_data' | 'step6_extras' | 'step7_summary' | 'step8_pay' | 'step10_confirmed'>('step5_data');
   
   const [passengerDetails, setPassengerDetails] = useState<any[]>([]);
   const [mainEmail, setMainEmail] = useState('');
@@ -31,7 +23,6 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
   const [isPaying, setIsPaying] = useState(false);
   const [pnrNumber, setPnrNumber] = useState('');
 
-  // Automatische Sitzungswiederherstellung
   useEffect(() => {
     const savedData = loadBookingSession();
     if (savedData) {
@@ -54,7 +45,6 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
     }
   }, [adults, children]);
 
-  // Sitzungsspeicherung im Hintergrund
   useEffect(() => {
     if (subStage !== 'step10_confirmed') {
       saveBookingSession({ passengerDetails, mainEmail, mainPhone, plateNumber, subStage });
@@ -95,7 +85,7 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
     <div className="w-full">
       <style>{ticketPrintStyles}</style>
 
-      {/* RENDER-ABZWEIGUNG FÜR DIE FORMULARE (SCHRITT 5 & SCHRITT 6) */}
+      {/* RENDER-WEICHE FÜR DIE FORMULARE (SCHRITT 5 & SCHRITT 6) */}
       {(subStage === 'step5_data' || subStage === 'step6_extras') && (
         <BookingFormSteps 
           subStage={subStage} 
@@ -119,7 +109,7 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
         />
       )}
 
-      {/* RENDER-ABZWEIGUNG FÜR DIE RECHNUNG, ZAHLUNG UND BESTÄTIGUNG (SCHRITT 7 BIS 10) */}
+      {/* RENDER-WEICHE FÜR DIE RECHNUNG, ZAHLUNG UND BESTÄTIGUNG (SCHRITT 7 BIS 10) */}
       {(subStage === 'step7_summary' || subStage === 'step8_pay' || subStage === 'step10_confirmed') && (
         <BookingSummarySteps 
           subStage={subStage} 

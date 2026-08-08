@@ -1,33 +1,34 @@
 export function calculateDynamicFerryPrice(adults: number, children: number, vehicle: string, selectedOffer: any, hasCabin: boolean, hasMeals: boolean, hasPet: boolean) {
-  // 1. Basis-Preise aus dem gewählten Schiff auslesen
-  const basePricePerPerson = selectedOffer?.basePrice || 120;
-  const baseVehiclePrice = selectedOffer?.vehiclePrice || 80;
-  const baseCabinPrice = selectedOffer?.cabinPrice || 60;
+  // 1. Basis-Tarife aus dem gewählten Schiff auslesen (Standardisiert)
+  const baseAdultPrice = selectedOffer?.basePrice || 90; // 90€ pro Erwachsener
+  const baseChildPrice = 45;                            // 45€ pro Kind
+  const baseVehiclePrice = selectedOffer?.vehiclePrice || 90; // 90€ für PKW
+  const baseCabinPrice = selectedOffer?.cabinPrice || 120;   // 120€ für Innenkabine
+  const petPrice = hasPet ? 25 : 0;                     // 25€ für Haustier
 
-  // 2. Roh-Kosten berechnen
-  const passengerCount = Number(adults) + Number(children);
-  const ticketSubtotal = passengerCount * basePricePerPerson;
+  // 2. Posten-Berechnung (Netto-Tarife)
+  const adultSubtotal = Number(adults) * baseAdultPrice;
+  const childSubtotal = Number(children) * baseChildPrice;
   const vehicleSubtotal = vehicle !== 'None' ? baseVehiclePrice : 0;
   const cabinSubtotal = hasCabin ? baseCabinPrice : 0;
-  const mealSubtotal = hasMeals ? 30 * passengerCount : 0;
-  const petSubtotal = hasPet ? 40 : 0;
+  const mealSubtotal = hasMeals ? 30 * (Number(adults) + Number(children)) : 0;
 
-  const rawTotal = ticketSubtotal + vehicleSubtotal + cabinSubtotal + mealSubtotal + petSubtotal;
+  // Fixe, transparente Steuern & Hafengebühren (Von Anfang an einkalkuliert)
+  const taxesAndFees = 35; 
 
-  // 3. Echte Schalter-Abgaben und Steuern isolieren (Im Gesamtpreis enthalten für Transparenz)
-  const euPortTax = Math.round(rawTotal * 0.08); // 8% Hafengebühr
-  const customsTax = vehicle !== 'None' ? 25 : 5; // Zollgebühr für Fahrzeuge
-  const netTarif = rawTotal - euPortTax - customsTax;
+  // Gesamtsumme mathematisch präzise addieren
+  const totalCost = adultSubtotal + childSubtotal + vehicleSubtotal + cabinSubtotal + mealSubtotal + petPrice + taxesAndFees;
 
   return {
-    ticketCost: ticketSubtotal,
+    adultCount: Number(adults),
+    childCount: Number(children),
+    adultCost: adultSubtotal,
+    childCost: childSubtotal,
     vehicleCost: vehicleSubtotal,
     cabinCost: cabinSubtotal,
     mealCost: mealSubtotal,
-    petCost: petSubtotal,
-    euPortTax: euPortTax,
-    customsTax: customsTax,
-    netTarif: netTarif,
-    totalCost: rawTotal
+    petCost: petPrice,
+    taxesAndFees: taxesAndFees,
+    totalCost: totalCost
   };
 }
