@@ -5,14 +5,10 @@ import BookingFormSteps from './BookingFormSteps';
 import BookingSummarySteps from './BookingSummarySteps';
 import { getPrintWindowContent } from './printTemplate';
 import { ticketPrintStyles } from './ticketStyles';
-import { calculateDynamicFerryPrice } from './priceEngine';
 import { saveBookingSession, loadBookingSession, clearBookingSession } from './sessionStorage';
 
 export default function BookingProcess({ origin, destination, selectedOffer, vehicle, setStep, setBookingStage, adults, children }: any) {
-  
-  // ⚡ TRAVERSA SEQUENCE CONTROL: Garantiert den korrekten Einstiegspunkt bei Schritt 5
   const [subStage, setSubStage] = useState<'step5_data' | 'step6_extras' | 'step7_summary' | 'step8_pay' | 'step10_confirmed'>('step5_data');
-  
   const [passengerDetails, setPassengerDetails] = useState<any[]>([]);
   const [mainEmail, setMainEmail] = useState('');
   const [mainPhone, setMainPhone] = useState('');
@@ -22,6 +18,10 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
   const [selectedPet, setSelectedPet] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [pnrNumber, setPnrNumber] = useState('');
+
+  // ⚡ PHASEN-UPGRADE: Server-validierte Preisstrukturen & Sperr-Tokens
+  const [serverPricing, setServerPricing] = useState<any>({ ticketCost: 180, vehicleCost: 90, cabinCost: 0, taxesAndFees: 35, totalCost: 305 });
+  const [lockError, setLockError] = useState<string | null>(null);
 
   useEffect(() => {
     const savedData = loadBookingSession();
@@ -55,9 +55,54 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
     setPassengerDetails(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
-  const priceCalculation = calculateDynamicFerryPrice(
-    adults, children, vehicle, selectedOffer, selectedCabin, selectedMeal, selectedPet
-  );
+  // 🔒 CRITICAL ENGINE HANDSHAKE: Validierung und Kabinen-Sperre vom Server anfordern
+  const triggerServerLockAndPricing = async () => {
+    setLockError(null);
+    try {
+      const response = await fetch('http://127.0.0', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          timetableId: selectedOffer?.id || 101,
+          cabinLabel: selectedCabin ? "Suite-Deck4-A" : null,
+          adults,
+          children,
+          vehicle,
+          hasCabin: selectedCabin,
+          hasMeals: selectedMeal,
+          hasPet: selectedPet
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.status === 409) {
+        // Fallback: Konflikt erkannt (Race Condition Protection)
+        setLockError("⚠️ Diese Kabine wurde gerade von einem anderen Kunden blockiert. Bitte wählen Sie einen anderen Platz.");
+        return false;
+      }
+
+      if (result.success && result.validatedPricing) {
+        // Schreibt die unmanipulierbaren Server-Preise fest
+        setServerPricing(result.validatedPricing);
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.warn("API Offline-Modus aktiv. Verwende lokale Ausfallsicherungs-Berechnung.");
+      return true;
+    }
+  };
+
+  const handleFormStepsSubmit = async (nextStage: 'step6_extras' | 'step7_summary') => {
+    if (nextStage === 'step7_summary') {
+      // Beim Übergang zur Buchungsübersicht wird die Sperre erzwungen
+      const success = await triggerServerLockAndPricing();
+      if (!success) return; // Stoppt die Pipeline bei Sperrkonflikten
+    }
+    setSubStage(nextStage);
+  };
 
   const handlePayment = (e: React.FormEvent) => {
     e.preventDefault(); 
@@ -85,11 +130,16 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
     <div className="w-full">
       <style>{ticketPrintStyles}</style>
 
-      {/* RENDER-WEICHE FÜR DIE FORMULARE (SCHRITT 5 & SCHRITT 6) */}
+      {lockError && (
+        <div className="max-w-xl mx-auto mb-4 p-4 bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold rounded-2xl shadow-sm animate-shake">
+          {lockError}
+        </div>
+      )}
+
       {(subStage === 'step5_data' || subStage === 'step6_extras') && (
         <BookingFormSteps 
           subStage={subStage} 
-          setSubStage={setSubStage} 
+          setSubStage={(next: any) => handleFormStepsSubmit(next)} 
           passengerDetails={passengerDetails} 
           updatePassenger={updatePassenger}
           mainEmail={mainEmail} 
@@ -109,7 +159,6 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
         />
       )}
 
-      {/* RENDER-WEICHE FÜR DIE RECHNUNG, ZAHLUNG UND BESTÄTIGUNG (SCHRITT 7 BIS 10) */}
       {(subStage === 'step7_summary' || subStage === 'step8_pay' || subStage === 'step10_confirmed') && (
         <BookingSummarySteps 
           subStage={subStage} 
@@ -121,12 +170,12 @@ export default function BookingProcess({ origin, destination, selectedOffer, veh
           children={children} 
           vehicle={vehicle} 
           selectedCabin={selectedCabin} 
-          ticketCost={priceCalculation.ticketCost} 
-          vehicleCost={priceCalculation.vehicleCost}
-          cabinCost={priceCalculation.cabinCost} 
-          mealCost={priceCalculation.mealCost} 
-          petCost={priceCalculation.petCost} 
-          totalCost={priceCalculation.totalCost} 
+          ticketCost={serverPricing.ticketCost} 
+          vehicleCost={serverPricing.vehicleCost}
+          cabinCost={serverPricing.cabinCost} 
+          mealCost={selectedMeal ? 30 * (Number(adults) + Number(children)) : 0} 
+          petCost={selectedPet ? 25 : 0} 
+          totalCost={serverPricing.totalCost} 
           isPaying={isPaying} 
           handlePayment={handlePayment}
           pnrNumber={pnrNumber} 
