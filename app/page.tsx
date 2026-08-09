@@ -7,14 +7,15 @@ import SearchStep from './SearchStep';
 import ResultsView from './ResultsView';
 import LandingContent from './LandingContent';
 import AiChatbot from './AiChatbot';
+import BookingProcess from './BookingProcess';
 import { LOCALES } from './locales';
-import { runAutomatedPipelineTest } from './automatedTests';
 
 export default function Home() {
-  const [step, setStep] = useState(1);
+  // 🔏 AKTIVIERUNG DER KONSISTENTEN 10-SCHRITTE-PIPELINE
+  const [step, setStep] = useState<number>(1);
   const [currentLang, setCurrentLang] = useState('DE');
-  const [testLogs, setTestLogs] = useState<string[]>([]);
   
+  // Suchmasken-Zustände (Schritt 1)
   const [origin, setOrigin] = useState('Marseille 🇫🇷');
   const [destination, setDestination] = useState('Algiers (Algier) 🇩🇿');
   const [depDate, setDepDate] = useState('2026-09-15');
@@ -23,82 +24,111 @@ export default function Home() {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [vehicle, setVehicle] = useState('Car');
-  const [accommodation, setAccommodation] = useState('Cabin');
+  const [hasPet, setHasPet] = useState(false);
+
+  // Zustand für die ausgewählte Fähre (Schritt 2 & 3)
+  const [selectedOffer, setSelectedOffer] = useState<any>(null);
 
   const t = LOCALES[currentLang] || LOCALES.DE;
 
-  const getPrice = () => {
-    let base = accommodation === 'Cabin' ? 120 : 90;
-    if (vehicle === 'Van') base += 90;
-    if (vehicle === 'None') base -= 40;
+  // Serverseitig gespiegelter Preis-Faktor (Basis-Kalkulation)
+  const getBasePrice = () => {
+    let base = 90; // Standard Deckspassage pro Person
+    if (vehicle === 'Van') base += 50;
+    if (vehicle === 'None') base -= 30;
     return base;
   };
 
-  const stepsConfig = [
-    { number: 1, label: currentLang === 'AR' ? 'بحث' : '1. Suchen' },
-    { number: 2, label: currentLang === 'AR' ? 'العبارات' : '2. Vergleichen' },
-    { number: 3, label: currentLang === 'AR' ? 'الدفع' : '3. Ticket' }
+  // Die 10-Schritte Konfigurations-Leiste (Scannbar & Trilingual)
+  const stepsLabels = [
+    "1. Suche", "2. Fähren", "3. Auswahl", "4. Reisende", 
+    "5. Extras", "6. Passdaten", "7. Prüfung", "8. Zahlung", 
+    "9. Bestätigen", "10. Ticket"
   ];
 
   return (
-    // 🎨 NEUER HINTERGRUND: Sanftes, mattes Off-White
-    <div className="min-h-screen bg-[#f8fafd] text-slate-800 antialiased font-sans relative">
+    <div className="min-h-screen bg-[#f4f7f6] text-[#1e293b] antialiased font-sans relative">
       <HeaderView currentLang={currentLang} setCurrentLang={setCurrentLang} />
-      <AnimatedMap currentLang={currentLang} />
       
-      {/* 🎨 PROGRESS-BAR: Edles Deep Marine (#0f2c59) */}
-      <div className="w-full bg-[#0f2c59] border-b border-[#1d3d6f] py-4 px-6 shadow-sm">
-        <div className="max-w-3xl mx-auto flex items-center justify-between relative">
-          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[1px] bg-slate-600/40 z-0"></div>
-          {stepsConfig.map((s) => (
-            <div key={s.number} className="flex flex-col items-center relative z-10 flex-1">
-              {/* 🎨 STATUS-KREISE: Champagner-Gold (#dac0a3) für den aktiven Schritt */}
-              <div className={`w-8 h-8 rounded-full font-black text-xs flex items-center justify-center border-2 transition-all duration-300 ${
-                step === s.number 
-                  ? 'bg-[#dac0a3] text-[#0f2c59] border-[#dac0a3] scale-110 shadow-lg' 
-                  : 'bg-[#143666] text-slate-400 border-slate-700'
-              }`}>
-                {s.number}
+      {step <= 3 && <AnimatedMap currentLang={currentLang} />}
+      
+      {/* 📊 ENTERPRISE PROGRESS BAR (ALLE 10 SCHRITTE VISUELL VERKNÜPFT) */}
+      <div className="w-full bg-[#1e293b] border-b border-[#334155] py-3.5 px-4 shadow-md sticky top-[64px] z-40 print-hidden">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-1 relative">
+          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[1px] bg-[#334155] z-0"></div>
+          {stepsLabels.map((label, index) => {
+            const currentStepNum = index + 1;
+            const isActive = step === currentStepNum;
+            const isPassed = step > currentStepNum;
+            return (
+              <div key={currentStepNum} className="flex flex-col items-center relative z-10 flex-1">
+                <div className={`w-6 h-6 rounded-full font-black text-[10px] flex items-center justify-center border transition-all duration-300 ${
+                  isActive 
+                    ? 'bg-[#0d9488] text-white border-[#0d9488] scale-110 shadow-sm' 
+                    : isPassed ? 'bg-[#0d9488]/30 text-[#0d9488] border-[#0d9488]/40' : 'bg-[#0f172a] text-slate-500 border-slate-800'
+                }`}>
+                  {isPassed ? "✓" : currentStepNum}
+                </div>
+                <span className={`text-[8px] font-bold tracking-tight mt-1 hidden md:block whitespace-nowrap ${isActive ? 'text-[#0d9488]' : 'text-slate-500'}`}>
+                  {label}
+                </span>
               </div>
-              <span className={`text-[10px] font-black uppercase tracking-widest mt-1.5 ${step === s.number ? 'text-[#dac0a3]' : 'text-slate-400'}`}>
-                {s.label}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
+      {/* HAUPTCONTENT-STEUERUNG */}
       <main className="max-w-5xl mx-auto px-6 pb-12 mt-6">
+        
+        {/* SCHRITT 1: REISE SUCHEN */}
         {step === 1 && (
           <>
             <SearchStep 
-              vehicle={vehicle} setVehicle={setVehicle} accommodation={accommodation} setAccommodation={setAccommodation}
+              vehicle={vehicle} setVehicle={setVehicle} accommodation="Deck" setAccommodation={() => {}}
               adults={adults} setAdults={setAdults} children={children} setChildren={setChildren}
               depDate={depDate} setDepDate={setDepDate} retDate={retDate} setRetDate={setRetDate}
               isRound={isRound} setIsRound={setIsRound} origin={origin} setOrigin={setOrigin}
-              destination={destination} setDestination={setDestination} onSearch={() => setStep(2)}
-              currentLang={currentLang}
+              destination={destination} setDestination={setDestination} 
+              onSearch={() => setStep(2)} currentLang={currentLang}
             />
             <LandingContent currentLang={currentLang} />
           </>
         )}
 
+        {/* SCHRITT 2 & 3: FÄHRVERBINDUNGEN LADEN & VERBINDUNG AUSWÄHLEN */}
         {step === 2 && (
-          <ResultsView origin={origin} destination={destination} getPrice={getPrice} setStep={setStep} currentLang={currentLang} vehicle={vehicle} adults={adults} children={children} />
+          <ResultsView 
+            origin={origin} destination={destination} getPrice={getBasePrice} 
+            setStep={setStep} currentLang={currentLang} vehicle={vehicle} 
+            adults={adults} children={children}
+            onSelectOffer={(offer: any) => {
+              setSelectedOffer(offer);
+              setStep(4); // Springt direkt in die Reisenden-Erfassung (Schritt 4)
+            }}
+          />
         )}
+
+        {/* SCHRITTE 4 BIS 10: DER LÜCKENLOSE BUCHUNGSPROCESS */}
+        {step >= 4 && (
+          <BookingProcess 
+            step={step}
+            setStep={setStep}
+            origin={origin}
+            destination={destination}
+            selectedOffer={selectedOffer}
+            vehicle={vehicle}
+            adults={adults}
+            children={children}
+            hasPetInitial={hasPet}
+            currentLang={currentLang}
+          />
+        )}
+
       </main>
 
-      {/* 🧪 TEST CENTER: Unauffälliges, professionelles Anthrazit-Design */}
-      <div className="max-w-5xl mx-auto px-6 pb-12 text-left font-sans text-xs">
-        <div className="bg-[#121824] text-slate-100 rounded-3xl p-6 border border-slate-800 space-y-4 shadow-xl">
-          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-            <span className="font-mono text-[10px] text-slate-400 font-black tracking-widest">🧪 PIPELINE SUITE INTERN</span>
-            <button type="button" onClick={() => runAutomatedPipelineTest(setTestLogs)} className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-black px-4 py-2 rounded-xl text-[10px] uppercase border border-slate-700 transition-all">Test ausführen</button>
-          </div>
-          <div className="bg-[#090d16] p-4 rounded-xl text-emerald-400 font-mono text-[11px] max-h-[120px] overflow-y-auto border border-slate-900">
-            {testLogs.map((log, i) => <p key={i}>{log}</p>)}
-          </div>
-        </div>
+      <div className="print-hidden">
+        <AiChatbot currentLang={currentLang} />
       </div>
     </div>
   );
