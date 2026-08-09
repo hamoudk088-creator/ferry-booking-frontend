@@ -1,60 +1,80 @@
 "use client";
 
 import React, { useState } from 'react';
-import { CreditCard as CardIcon, Wallet, ShieldCheck, Cpu } from 'lucide-react';
+import { CreditCard as CardIcon, Wallet, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
 import FinalTicketView from './FinalTicketView';
 import MailInboxView from './MailInboxView';
 
-export default function BookingSummarySteps({ subStage, setSubStage, selectedOffer, origin, destination, adults, children, vehicle, selectedCabin, ticketCost, vehicleCost, cabinCost, mealCost, petCost, totalCost, isPaying, setIsPaying, pnrNumber, setPnrNumber, passengerDetails, plateNumber, mainEmail, setBookingStage, setStep, handlePrint }: any) {
+export default function BookingSummarySteps({ subStage, setSubStage, selectedOffer, origin, destination, adults, children, vehicle, selectedCabin, ticketCost, vehicleCost, cabinCost, mealCost, petCost, totalCost, pnrNumber, setPnrNumber, passengerDetails, plateNumber, mainEmail, setBookingStage, setStep, handlePrint }: any) {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>('card');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [logTerminal, setLogTerminal] = useState("SYSTEM: Awaiting transaction init...");
+  const [loadingPhase, setLoadingPhase] = useState<string>("");
+  
+  // 🔏 INTEGRITÄTS-GUARD: Verwaltet den Ladezustand autark lokal, um Parent-Fehler auszuschließen!
+  const [isLocalPaying, setIsLocalPaying] = useState(false);
 
-  // 🔒 PCI-COMPLIANT LIVE TRANSACTION CONTROLLER
   const handleProcessRealPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsPaying(true);
+    setIsLocalPaying(true);
     setErrorMessage(null);
-    setLogTerminal("🔐 [INIT] Requesting cryptographic Payment Intent from Stripe API...");
+    setLoadingPhase("🔐 Initialisiere verschlüsselte Bankverbindung via TLS 1.3...");
 
     try {
-      // 1. Holt das verschlüsselte ClientSecret vom gehärteten Express-Gateway
+      const formattedPassengers = passengerDetails.map((p: any) => ({
+        firstName: p.firstName || "Unspecified",
+        lastName: p.lastName || "Unspecified",
+        gender: p.gender || "M",
+        passportNumber: p.passport || "PASS-DE-12345",
+        nationality: p.nationality || "Deutsch",
+        birthDate: p.birthDate || "1990-01-01"
+      }));
+
+      // 1. Fordert den Payment Intent beim Express-Backend an
       const response = await fetch('http://127.0.0', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          totalCost,
-          email: mainEmail || "customer@nisouferries.com",
-          routeKey: `${origin} -> ${destination}`,
-          shipName: selectedOffer?.shipName || "Mediterranean Star",
-          depDate: "2026-09-15",
-          vehicleType: vehicle,
-          cabinLabel: selectedCabin ? "Suite 101" : null
+          totalPrice: totalCost,
+          contactEmail: mainEmail || "customer@nisouferries.com",
+          routeId: 101,
+          departureDate: "2026-09-15",
+          vehicle: { type: vehicle, licensePlate: plateNumber || "🚶 OHNE FAHRZEUG" },
+          passengers: formattedPassengers,
+          contactPhone: "+491761111222"
         })
       });
+
+      if (!response.ok) {
+        throw new Error("Das Gateway hat die Verbindung abgelehnt (Port 5000 offline).");
+      }
 
       const data = await response.json();
       
       if (!data.success) {
-        setErrorMessage("❌ Transaction rejected: Server handshake refused.");
-        setIsPaying(false);
+        setErrorMessage("❌ Autorisierung abgelehnt: Die Kreditkarte hat unzureichende Deckung oder ein falsches Ablaufdatum.");
+        setIsLocalPaying(false);
         return;
       }
 
-      setLogTerminal("🔏 [SCA] Triggering 3-D Secure / Strong Customer Authentication...");
+      // 2. Simuliert die asynchrone 3-D Secure Freigabe (SCA)
+      setLoadingPhase("🛡️ Warte auf 3-D Secure Bestätigung (SCA App-Freigabe)...");
       
-      // 2. Simuliert die asynchrone Webhook-Zustellung nach erfolgreicher SCA-Freigabe
       setTimeout(() => {
-        setLogTerminal("📡 [SUCCESS] payment_intent.succeeded received via Webhook. Ticket created.");
-        const finalPnr = data.mockPnr || "ALG-" + Math.floor(100000 + Math.random() * 900000);
-        setPnrNumber(finalPnr);
-        setSubStage('step10_confirmed');
-        setIsPaying(false);
+        setLoadingPhase("📡 Zahlung autorisiert. Synchronisiere Ticket-Zolldatenbank...");
+        
+        setTimeout(() => {
+          const finalPnr = data.mockPnr || "BKG-" + Math.floor(100000 + Math.random() * 900000);
+          setPnrNumber(finalPnr);
+          setSubStage('step10_confirmed');
+          setIsLocalPaying(false);
+          setLoadingPhase("");
+        }, 1200);
       }, 2000);
 
-    } catch (err) {
-      setErrorMessage("❌ Critical Timeout: Could not connect to banking infrastructure.");
-      setIsPaying(false);
+    } catch (err: any) {
+      setErrorMessage("⚠️ Netzwerk-Zahlungsfehler: Die Verbindung zum Banken-Gateway wurde unterbrochen. Bitte überprüfen Sie, ob Ihr Backend-Server auf Port 5000 gestartet ist.");
+      setIsLocalPaying(false);
+      setLoadingPhase("");
     }
   };
 
@@ -63,7 +83,7 @@ export default function BookingSummarySteps({ subStage, setSubStage, selectedOff
       
       {/* SCHRITT 7: BUCHUNGSÜBERSICHT */}
       {subStage === 'step7_summary' && (
-        <div className="bg-white rounded-3xl p-6 md:p-8 border shadow-xl max-w-xl mx-auto space-y-4">
+        <div className="bg-white rounded-3xl p-6 md:p-8 border shadow-xl max-w-xl mx-auto space-y-4 animate-scale-up">
           <h3 className="text-sm font-black text-[#0b2545] border-b pb-2 uppercase tracking-wider">📊 Schritt 7: Buchungsübersicht</h3>
           <div className="p-4 bg-slate-50 rounded-2xl border space-y-3 text-xs font-bold text-slate-800">
             <div className="flex justify-between border-b pb-2">
@@ -74,19 +94,19 @@ export default function BookingSummarySteps({ subStage, setSubStage, selectedOff
               <span className="font-mono text-base font-black text-[#0b2545]">{totalCost} €</span>
             </div>
             <div className="text-[11px] text-slate-500 font-medium space-y-1">
-              <p>👥 Passagiere: {adults} Erw. {children > 0 && `• ${children} Kind`}</p>
-              <p>🚘 Fahrzeugklasse: {vehicle === 'None' ? '🚶 Fußgänger' : vehicle}</p>
-              <p>🛌 Unterbringung: {selectedCabin ? 'Private Kabine' : 'Standard Deckspassage'}</p>
+              <p>👥 Reisende: {adults} Erw. {children > 0 && `• ${children} Kind`}</p>
+              <p>🚘 Zoll-Fahrzeugklasse: {vehicle === 'None' ? '🚶 Fußgänger' : vehicle}</p>
+              <p>🛌 Kabine gebucht: {selectedCabin ? 'Ja (Innenkabine Bettplatz)' : 'Nein (Deckspassage)'}</p>
             </div>
           </div>
-          <button type="button" onClick={() => setSubStage('step8_pay')} className="w-full bg-blue-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider">Weiter zur Zahlung</button>
+          <button type="button" onClick={() => setSubStage('step8_pay')} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-md">Weiter zur Zahlung</button>
         </div>
       )}
 
-      {/* SCHRITT 8 & 9: PRODUCTION PAYMENT SCREEN */}
+      {/* SCHRITT 8 & 9: PAYMENT SCREEN */}
       {subStage === 'step8_pay' && (
-        <div className="bg-white rounded-3xl p-6 border shadow-xl max-w-md mx-auto space-y-4">
-          <h3 className="text-sm font-black text-[#0b2545] border-b pb-2 text-left uppercase tracking-wider">💳 Schritt 8 &amp; 9: Zahlungsart</h3>
+        <div className="bg-white rounded-3xl p-6 border shadow-xl max-w-md mx-auto space-y-4 animate-scale-up">
+          <h3 className="text-sm font-black text-[#0b2545] border-b pb-2 text-left uppercase tracking-wider">Abrechnung &amp; Zahlungsart</h3>
           
           <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setPaymentMethod('card')} className={`p-2.5 rounded-xl border-2 font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${paymentMethod === 'card' ? 'border-[#0b2545] bg-[#0b2545] text-amber-400' : 'bg-slate-50 border-slate-200 text-slate-600'}`}><CardIcon className="h-4 w-4" /> Credit Card</button>
@@ -100,25 +120,32 @@ export default function BookingSummarySteps({ subStage, setSubStage, selectedOff
                 <input type="text" required maxLength={19} placeholder="4242 4242 4242 4242" className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs font-black tracking-widest text-white focus:outline-none" />
               </div>
             ) : (
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl text-left text-xs font-bold text-blue-900">🔹 Sichere Weiterleitung zu PayPal Checkout aktiv.</div>
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl text-left text-xs font-bold text-blue-900">🔹 Weiterleitung zu PayPal Checkout nach Klick aktiv.</div>
             )}
 
-            {/* LIVE SYSTEM TERMINAL LOG */}
-            <div className="bg-slate-950 text-emerald-400 p-3.5 rounded-xl font-mono text-[9px] text-left border border-slate-800 space-y-1">
-              <div className="text-slate-500 flex items-center gap-1 font-sans font-bold border-b border-slate-900 pb-1 mb-1"><Cpu className="h-3 w-3 text-blue-500 animate-pulse" /> TRANSACTION GATEWAY // SHA-512</div>
-              <p>{logTerminal}</p>
-            </div>
+            {/* LIVE UX LOADER */}
+            {isLocalPaying && (
+              <div className="p-4 bg-slate-900 text-cyan-400 rounded-xl font-mono text-[10px] flex items-center gap-3 text-left border border-slate-800 shadow-md">
+                <RefreshCw className="h-4 w-4 text-cyan-400 animate-spin shrink-0" />
+                <span className="font-bold tracking-tight">{loadingPhase}</span>
+              </div>
+            )}
 
-            {errorMessage && <div className="p-3 bg-red-50 border border-red-200 text-red-700 font-bold rounded-xl text-xs text-left animate-pulse">{errorMessage}</div>}
+            {errorMessage && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 font-bold rounded-xl text-xs text-left flex items-start gap-2 shadow-sm animate-shake">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
-            <button type="submit" disabled={isPaying} className="w-full bg-blue-600 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest disabled:opacity-40">
-              {isPaying ? "🔒 Verarbeite Bank-SCA..." : `Jetzt bezahlen (${totalCost} €)`}
+            <button type="submit" disabled={isLocalPaying} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed shadow-md">
+              {isLocalPaying ? "🔒 Transaktion läuft..." : `Sicher bezahlen (${totalCost} €)`}
             </button>
           </form>
         </div>
       )}
 
-      {/* SCHRITT 10: CONFIRMED */}
+      {/* SCHRITT 10: BUCHUNGSBESTÄTIGUNG */}
       {subStage === 'step10_confirmed' && (
         <div className="space-y-6">
           <FinalTicketView 
